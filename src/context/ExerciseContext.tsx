@@ -28,21 +28,7 @@ interface ExerciseProviderProps {
 export const ExerciseProvider: React.FC<ExerciseProviderProps> = ({
   children,
 }) => {
-  const [exercises, setExercises] = useState<Exercise[]>([
-    // Sample data for testing
-    {
-      id: '1',
-      name: 'Squat',
-      category: 'Legs',
-      createdAt: new Date(),
-    },
-    {
-      id: '2',
-      name: 'Bench Press',
-      category: 'Chest',
-      createdAt: new Date(),
-    },
-  ]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
 
   const addExercise = (exercise: Omit<Exercise, 'id' | 'createdAt'>) => {
     const newExercise: Exercise = {

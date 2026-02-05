@@ -5,20 +5,21 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  TextInput,
   Alert,
+  Modal,
+  FlatList,
 } from 'react-native';
 import {launchImageLibrary} from 'react-native-image-picker';
 import {useExercises} from '../context/ExerciseContext';
 import {VideoUpload} from '../types';
+import {exerciseDatabase, ExerciseTemplate} from '../data/exerciseDatabase';
 
 export default function UploadScreen() {
   const {addExercise} = useExercises();
   const [selectedVideo, setSelectedVideo] = useState<VideoUpload | null>(null);
-  const [exerciseName, setExerciseName] = useState('');
-  const [category, setCategory] = useState('Legs');
-
-  const categories = ['Legs', 'Chest', 'Back', 'Shoulders', 'Arms', 'Core'];
+  const [selectedExercise, setSelectedExercise] =
+    useState<ExerciseTemplate | null>(null);
+  const [showExercisePicker, setShowExercisePicker] = useState(false);
 
   const handleSelectVideo = async () => {
     const result = await launchImageLibrary({
@@ -47,8 +48,8 @@ export default function UploadScreen() {
   };
 
   const handleUpload = () => {
-    if (!exerciseName.trim()) {
-      Alert.alert('Error', 'Please enter an exercise name');
+    if (!selectedExercise) {
+      Alert.alert('Error', 'Please select an exercise');
       return;
     }
 
@@ -59,15 +60,14 @@ export default function UploadScreen() {
 
     // Add exercise to context
     addExercise({
-      name: exerciseName,
-      category,
+      name: selectedExercise.name,
+      category: selectedExercise.category,
       videoUri: selectedVideo.uri,
     });
 
     // Reset form
     setSelectedVideo(null);
-    setExerciseName('');
-    setCategory('Legs');
+    setSelectedExercise(null);
 
     Alert.alert('Success', 'Exercise uploaded successfully!', [
       {
@@ -88,37 +88,30 @@ export default function UploadScreen() {
 
       <View style={styles.formContainer}>
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Exercise Name *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., Barbell Squat"
-            value={exerciseName}
-            onChangeText={setExerciseName}
-            placeholderTextColor="#BDBDBD"
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Category *</Text>
-          <View style={styles.categoryContainer}>
-            {categories.map(cat => (
-              <TouchableOpacity
-                key={cat}
-                style={[
-                  styles.categoryChip,
-                  category === cat && styles.categoryChipActive,
-                ]}
-                onPress={() => setCategory(cat)}>
-                <Text
-                  style={[
-                    styles.categoryChipText,
-                    category === cat && styles.categoryChipTextActive,
-                  ]}>
-                  {cat}
+          <Text style={styles.label}>Exercise *</Text>
+          {selectedExercise ? (
+            <View style={styles.exerciseSelected}>
+              <View style={styles.exerciseInfo}>
+                <Text style={styles.exerciseName}>{selectedExercise.name}</Text>
+                <Text style={styles.exerciseCategory}>
+                  {selectedExercise.category} • {selectedExercise.muscleGroups.join(', ')}
                 </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.changeButton}
+                onPress={() => setShowExercisePicker(true)}>
+                <Text style={styles.changeButtonText}>Change</Text>
               </TouchableOpacity>
-            ))}
-          </View>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.selectExerciseButton}
+              onPress={() => setShowExercisePicker(true)}>
+              <Text style={styles.selectExerciseText}>
+                Select Exercise from Database
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.inputGroup}>
@@ -151,13 +144,51 @@ export default function UploadScreen() {
         <TouchableOpacity
           style={[
             styles.uploadButton,
-            (!exerciseName || !selectedVideo) && styles.uploadButtonDisabled,
+            (!selectedExercise || !selectedVideo) && styles.uploadButtonDisabled,
           ]}
           onPress={handleUpload}
-          disabled={!exerciseName || !selectedVideo}>
+          disabled={!selectedExercise || !selectedVideo}>
           <Text style={styles.uploadButtonText}>Upload Exercise</Text>
         </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={showExercisePicker}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowExercisePicker(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Exercise</Text>
+            <TouchableOpacity onPress={() => setShowExercisePicker(false)}>
+              <Text style={styles.modalClose}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={exerciseDatabase}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({item}) => (
+              <TouchableOpacity
+                style={styles.exerciseItem}
+                onPress={() => {
+                  setSelectedExercise(item);
+                  setShowExercisePicker(false);
+                }}>
+                <View style={styles.exerciseItemContent}>
+                  <Text style={styles.exerciseItemName}>{item.name}</Text>
+                  <Text style={styles.exerciseItemDetails}>
+                    {item.category} • {item.muscleGroups.join(', ')}
+                  </Text>
+                  <Text style={styles.exerciseItemDescription}>
+                    {item.description}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+          />
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -194,42 +225,42 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 8,
   },
-  input: {
+  selectExerciseButton: {
     backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 10,
-    fontSize: 16,
-    color: '#333',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  textArea: {
-    minHeight: 100,
-  },
-  categoryContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  categoryChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#E0E0E0',
-  },
-  categoryChipActive: {
-    backgroundColor: '#4A90E2',
     borderColor: '#4A90E2',
+    borderStyle: 'dashed',
   },
-  categoryChipText: {
-    fontSize: 14,
-    color: '#8E8E93',
+  selectExerciseText: {
+    color: '#4A90E2',
+    fontSize: 16,
     fontWeight: '600',
   },
-  categoryChipTextActive: {
-    color: '#FFFFFF',
+  exerciseSelected: {
+    backgroundColor: '#FFFFFF',
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  exerciseInfo: {
+    flex: 1,
+  },
+  exerciseName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  exerciseCategory: {
+    fontSize: 12,
+    color: '#8E8E93',
   },
   selectVideoButton: {
     backgroundColor: '#FFFFFF',
@@ -293,5 +324,54 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  modalHeader: {
+    backgroundColor: '#4A90E2',
+    padding: 20,
+    paddingTop: 60,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  modalClose: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  exerciseItem: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+  },
+  exerciseItemContent: {
+    flex: 1,
+  },
+  exerciseItemName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  exerciseItemDetails: {
+    fontSize: 14,
+    color: '#4A90E2',
+    marginBottom: 6,
+  },
+  exerciseItemDescription: {
+    fontSize: 13,
+    color: '#8E8E93',
+    lineHeight: 18,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#E0E0E0',
   },
 });
