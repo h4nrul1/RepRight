@@ -8,11 +8,14 @@ import {
   Alert,
   Modal,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import {launchImageLibrary} from 'react-native-image-picker';
 import {useExercises} from '../context/ExerciseContext';
 import {VideoUpload} from '../types';
 import {exerciseDatabase, ExerciseTemplate} from '../data/exerciseDatabase';
+import {uploadVideoToS3} from '../utils/s3Uploads';
+
 
 export default function UploadScreen() {
   const {addExercise} = useExercises();
@@ -20,6 +23,7 @@ export default function UploadScreen() {
   const [selectedExercise, setSelectedExercise] =
     useState<ExerciseTemplate | null>(null);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const handleSelectVideo = async () => {
     const result = await launchImageLibrary({
@@ -47,7 +51,7 @@ export default function UploadScreen() {
     }
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (!selectedExercise) {
       Alert.alert('Error', 'Please select an exercise');
       return;
@@ -58,23 +62,29 @@ export default function UploadScreen() {
       return;
     }
 
-    // Add exercise to context
-    addExercise({
-      name: selectedExercise.name,
-      category: selectedExercise.category,
-      videoUri: selectedVideo.uri,
-    });
+    setUploading(true);
+    try {
+      const videoUrl = await uploadVideoToS3(
+        selectedVideo.uri,
+        'user-1',
+        selectedExercise.name,
+      );
 
-    // Reset form
-    setSelectedVideo(null);
-    setSelectedExercise(null);
+      addExercise({
+        name: selectedExercise.name,
+        category: selectedExercise.category,
+        videoUri: videoUrl,
+      });
 
-    Alert.alert('Success', 'Exercise uploaded successfully!', [
-      {
-        text: 'OK',
-        onPress: () => {},
-      },
-    ]);
+      setSelectedVideo(null);
+      setSelectedExercise(null);
+
+      Alert.alert('Success', 'Exercise uploaded successfully!');
+    } catch (error) {
+      Alert.alert('Upload Failed', 'Could not upload video. Please try again.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -144,11 +154,15 @@ export default function UploadScreen() {
         <TouchableOpacity
           style={[
             styles.uploadButton,
-            (!selectedExercise || !selectedVideo) && styles.uploadButtonDisabled,
+            (!selectedExercise || !selectedVideo || uploading) && styles.uploadButtonDisabled,
           ]}
           onPress={handleUpload}
-          disabled={!selectedExercise || !selectedVideo}>
-          <Text style={styles.uploadButtonText}>Upload Exercise</Text>
+          disabled={!selectedExercise || !selectedVideo || uploading}>
+          {uploading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.uploadButtonText}>Upload Exercise</Text>
+          )}
         </TouchableOpacity>
       </View>
 
