@@ -1,12 +1,27 @@
-import React, {createContext, useContext, useState, ReactNode} from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
 import {Exercise} from '../types';
+import {useAuth} from './AuthContext';
+import {
+  fetchExercises,
+  saveExercise,
+  removeExercise,
+  upsertUser,
+} from '../services/analysisApi';
 
 interface ExerciseContextType {
   exercises: Exercise[];
-  addExercise: (exercise: Omit<Exercise, 'id' | 'createdAt'>) => void;
+  isLoading: boolean;
+  addExercise: (exercise: Omit<Exercise, 'id' | 'createdAt'>) => Promise<void>;
   updateExercise: (id: string, updates: Partial<Exercise>) => void;
-  deleteExercise: (id: string) => void;
+  deleteExercise: (id: string) => Promise<void>;
   getExerciseById: (id: string) => Exercise | undefined;
+  refreshExercises: () => Promise<void>;
 }
 
 const ExerciseContext = createContext<ExerciseContextType | undefined>(
@@ -29,14 +44,54 @@ export const ExerciseProvider: React.FC<ExerciseProviderProps> = ({
   children,
 }) => {
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const {user} = useAuth();
 
-  const addExercise = (exercise: Omit<Exercise, 'id' | 'createdAt'>) => {
-    const newExercise: Exercise = {
-      ...exercise,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-    };
-    setExercises(prev => [newExercise, ...prev]);
+  // Sync user to DB and load their exercises whenever they log in
+  useEffect(() => {
+    if (user) {
+      syncUserAndLoad();
+    } else {
+      setExercises([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.userId]);
+
+  const syncUserAndLoad = async () => {
+    if (!user) {
+      return;
+    }
+    try {
+      await upsertUser(user.userId, user.email);
+      await refreshExercises();
+    } catch (error) {
+      console.error('Failed to sync user or load exercises:', error);
+    }
+  };
+
+  const refreshExercises = async () => {
+    if (!user) {
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const data = await fetchExercises(user.userId);
+      setExercises(data);
+    } catch (error) {
+      console.error('Failed to fetch exercises:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addExercise = async (
+    exercise: Omit<Exercise, 'id' | 'createdAt'>,
+  ) => {
+    if (!user) {
+      return;
+    }
+    const saved = await saveExercise(user.userId, exercise);
+    setExercises(prev => [saved, ...prev]);
   };
 
   const updateExercise = (id: string, updates: Partial<Exercise>) => {
@@ -47,7 +102,11 @@ export const ExerciseProvider: React.FC<ExerciseProviderProps> = ({
     );
   };
 
-  const deleteExercise = (id: string) => {
+  const deleteExercise = async (id: string) => {
+    if (!user) {
+      return;
+    }
+    await removeExercise(id, user.userId);
     setExercises(prev => prev.filter(exercise => exercise.id !== id));
   };
 
@@ -59,10 +118,12 @@ export const ExerciseProvider: React.FC<ExerciseProviderProps> = ({
     <ExerciseContext.Provider
       value={{
         exercises,
+        isLoading,
         addExercise,
         updateExercise,
         deleteExercise,
         getExerciseById,
+        refreshExercises,
       }}>
       {children}
     </ExerciseContext.Provider>

@@ -13,7 +13,7 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Video from 'react-native-video';
 import {RootStackParamList} from '../types';
 import {useExercises} from '../context/ExerciseContext';
-import {analyzeForm} from '../services/analysisApi';
+import {analyzeForm, saveAnalysisResult} from '../services/analysisApi';
 import {useTheme} from '../context/ThemeContext';
 import {ThemeColors} from '../styles/colors';
 
@@ -48,6 +48,7 @@ export default function ExerciseDetailScreen() {
     setAnalyzing(true);
     try {
       const result = await analyzeForm(exercise.videoUri, exercise.name);
+      await saveAnalysisResult(exercise.id, result);
       updateExercise(exercise.id, {analysisResult: result});
     } catch (error: any) {
       Alert.alert('Analysis Failed', error.message || 'Something went wrong');
@@ -68,8 +69,8 @@ export default function ExerciseDetailScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            deleteExercise(exercise.id);
+          onPress: async () => {
+            await deleteExercise(exercise.id);
             navigation.goBack();
           },
         },

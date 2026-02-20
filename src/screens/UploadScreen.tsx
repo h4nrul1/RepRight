@@ -75,7 +75,7 @@ export default function UploadScreen() {
         selectedExercise.name,
       );
 
-      addExercise({
+      await addExercise({
         name: selectedExercise.name,
         category: selectedExercise.category,
         videoUri: videoUrl,
