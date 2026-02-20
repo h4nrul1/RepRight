@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -6,6 +6,8 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
+import {useTheme} from '../context/ThemeContext';
+import {ThemeColors} from '../styles/colors';
 
 interface ButtonProps {
   title: string;
@@ -24,6 +26,9 @@ export default function Button({
   style,
   textStyle,
 }: ButtonProps) {
+  const {colors} = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const buttonStyle = [
     styles.button,
     variant === 'primary' && styles.primaryButton,
@@ -53,42 +58,46 @@ export default function Button({
   );
 }
 
-const styles = StyleSheet.create({
-  button: {
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryButton: {
-    backgroundColor: '#4A90E2',
-  },
-  secondaryButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#4A90E2',
-  },
-  dangerButton: {
-    backgroundColor: '#FF3B30',
-  },
-  disabledButton: {
-    backgroundColor: '#BDBDBD',
-    borderColor: '#BDBDBD',
-  },
-  text: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  primaryText: {
-    color: '#FFFFFF',
-  },
-  secondaryText: {
-    color: '#4A90E2',
-  },
-  dangerText: {
-    color: '#FFFFFF',
-  },
-  disabledText: {
-    color: '#F5F5F5',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    button: {
+      padding: 16,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    primaryButton: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    secondaryButton: {
+      backgroundColor: colors.highlight,
+      borderColor: colors.border,
+    },
+    dangerButton: {
+      backgroundColor: colors.danger,
+      borderColor: '#F26B7A',
+    },
+    disabledButton: {
+      backgroundColor: colors.highlight,
+      borderColor: colors.border,
+    },
+    text: {
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    primaryText: {
+      color: colors.background,
+    },
+    secondaryText: {
+      color: colors.textPrimary,
+    },
+    dangerText: {
+      color: colors.textPrimary,
+    },
+    disabledText: {
+      color: colors.textMuted,
+    },
+  });

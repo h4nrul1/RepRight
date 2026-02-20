@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useMemo, useState} from 'react';
 import {
   View,
   Text,
@@ -11,12 +11,16 @@ import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../types';
 import {useExercises} from '../context/ExerciseContext';
+import {useTheme} from '../context/ThemeContext';
+import {ThemeColors} from '../styles/colors';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ExercisesScreen() {
   const navigation = useNavigation<NavigationProp>();
   const {exercises} = useExercises();
+  const {colors} = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -42,7 +46,7 @@ export default function ExercisesScreen() {
           placeholder="Search exercises..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#8E8E93"
+          placeholderTextColor={colors.textMuted}
         />
       </View>
 
@@ -114,122 +118,129 @@ export default function ExercisesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    paddingTop: 60,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
-  },
-  searchInput: {
-    backgroundColor: '#F5F5F5',
-    padding: 12,
-    borderRadius: 10,
-    fontSize: 16,
-    color: '#333',
-  },
-  filterContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
-    marginHorizontal: 5,
-  },
-  filterChipActive: {
-    backgroundColor: '#4A90E2',
-  },
-  filterChipText: {
-    fontSize: 14,
-    color: '#8E8E93',
-    fontWeight: '500',
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
-  },
-  listContainer: {
-    padding: 15,
-  },
-  exerciseCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  exerciseInfo: {
-    flex: 1,
-  },
-  exerciseName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 6,
-  },
-  exerciseDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginBottom: 10,
-  },
-  metaContainer: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  categoryBadge: {
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  categoryText: {
-    fontSize: 12,
-    color: '#4A90E2',
-    fontWeight: '600',
-  },
-  videoBadge: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  videoBadgeText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 60,
-  },
-  emptyText: {
-    fontSize: 18,
-    color: '#8E8E93',
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#BDBDBD',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      backgroundColor: colors.background,
+      padding: 20,
+      paddingTop: 60,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      marginBottom: 15,
+    },
+    searchInput: {
+      backgroundColor: colors.surface,
+      padding: 12,
+      borderRadius: 10,
+      fontSize: 16,
+      color: colors.textPrimary,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    filterContainer: {
+      backgroundColor: colors.background,
+      paddingVertical: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    filterChip: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      marginHorizontal: 5,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    filterChipActive: {
+      backgroundColor: colors.accentMuted,
+      borderColor: colors.accent,
+    },
+    filterChipText: {
+      fontSize: 14,
+      color: colors.textMuted,
+      fontWeight: '500',
+    },
+    filterChipTextActive: {
+      color: colors.accent,
+    },
+    listContainer: {
+      padding: 15,
+    },
+    exerciseCard: {
+      backgroundColor: colors.card,
+      borderRadius: 14,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    exerciseInfo: {
+      flex: 1,
+    },
+    exerciseName: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginBottom: 6,
+    },
+    exerciseDescription: {
+      fontSize: 14,
+      color: colors.textMuted,
+      marginBottom: 10,
+    },
+    metaContainer: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    categoryBadge: {
+      backgroundColor: colors.highlight,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    categoryText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: '700',
+    },
+    videoBadge: {
+      backgroundColor: colors.accentMuted,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.accent,
+    },
+    videoBadgeText: {
+      fontSize: 12,
+      color: colors.accent,
+      fontWeight: '700',
+    },
+    emptyContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingTop: 60,
+    },
+    emptyText: {
+      fontSize: 18,
+      color: colors.textSecondary,
+      fontWeight: '700',
+      marginBottom: 8,
+    },
+    emptySubtext: {
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+  });

@@ -1,8 +1,9 @@
 import React from 'react';
-import {NavigationContainer} from '@react-navigation/native';
+import {NavigationContainer, DefaultTheme} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {RootStackParamList, MainTabParamList} from '../types';
+import {useTheme} from '../context/ThemeContext';
 
 // Screens
 import HomeScreen from '../screens/HomeScreen';
@@ -15,11 +16,16 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 function MainTabs() {
+  const {colors} = useTheme();
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#4A90E2',
-        tabBarInactiveTintColor: '#8E8E93',
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+        },
         headerShown: false,
       }}>
       <Tab.Screen
@@ -55,8 +61,26 @@ function MainTabs() {
 }
 
 export default function AppNavigator() {
+  const {colors} = useTheme();
+
+  const theme = React.useMemo(
+    () => ({
+      ...DefaultTheme,
+      colors: {
+        ...DefaultTheme.colors,
+        background: colors.background,
+        card: colors.card,
+        text: colors.textPrimary,
+        border: colors.border,
+        primary: colors.accent,
+        notification: colors.accent,
+      },
+    }),
+    [colors],
+  );
+
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={theme}>
       <Stack.Navigator>
         <Stack.Screen
           name="MainTabs"

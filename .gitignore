@@ -56,6 +56,11 @@ yarn-error.log
 **/fastlane/screenshots
 **/fastlane/test_output
 
+# Python
+__pycache__/
+*.pyc
+backend/venv/
+
 # Bundle artifact
 *.jsbundle
 

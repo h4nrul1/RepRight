@@ -13,6 +13,7 @@ The app currently includes:
 - Video upload and playback functionality
 - Basic navigation between Home, Exercises, Upload, and Profile screens
 - Local state management for exercise data
+- Ability to analyze one exercise and provide feedback (squat)
 
 ## Final Objectives
 
@@ -21,3 +22,9 @@ The app currently includes:
 - Timestamp-based issue identification in videos
 - Progress tracking over time
 - Exercise-specific form guidelines
+
+## Ideas
+- Real-time coaching
+If users have gym buddies, use camera point at the user while repping. Showing real-time suggestions (wider grip, set down scapula, etc) with live motions
+
+- Injury Prevention

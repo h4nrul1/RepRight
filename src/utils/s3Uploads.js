@@ -1,4 +1,5 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET_NAME } from '@env';
 import RNFS from 'react-native-fs';
 import { Buffer } from 'buffer';
@@ -19,8 +20,9 @@ export async function uploadVideoToS3(fileUri, userId, exerciseName) {
         const timestamp = Date.now();
         const fileName = `${userId}/${exerciseName}/${timestamp}.mp4`;
 
-        // Read file as base64
-        const fileData = await RNFS.readFile(fileUri, 'base64');
+        // Decode URI-encoded path for RNFS
+        const decodedUri = decodeURIComponent(fileUri);
+        const fileData = await RNFS.readFile(decodedUri, 'base64');
         const buffer = Buffer.from(fileData, 'base64');
 
         const command = new PutObjectCommand({
@@ -31,10 +33,15 @@ export async function uploadVideoToS3(fileUri, userId, exerciseName) {
         });
 
         await s3Client.send(command);
-        
-        const videoUrl = `https://${S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${fileName}`;
+
+        // Generate a pre-signed URL for playback (valid for 7 days)
+        const getCommand = new GetObjectCommand({
+            Bucket: S3_BUCKET_NAME,
+            Key: fileName,
+        });
+        const videoUrl = await getSignedUrl(s3Client, getCommand, { expiresIn: 604800 });
         console.log('✅ Upload complete:', videoUrl);
-        
+
         return videoUrl;
     } catch (error) {
         console.error('❌ Upload error: ', error);

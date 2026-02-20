@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useMemo, useState} from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,16 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import {RouteProp, useRoute, useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Video from 'react-native-video';
 import {RootStackParamList} from '../types';
 import {useExercises} from '../context/ExerciseContext';
+import {analyzeForm} from '../services/analysisApi';
+import {useTheme} from '../context/ThemeContext';
+import {ThemeColors} from '../styles/colors';
 
 type ExerciseDetailRouteProp = RouteProp<RootStackParamList, 'ExerciseDetail'>;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -19,8 +23,11 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function ExerciseDetailScreen() {
   const route = useRoute<ExerciseDetailRouteProp>();
   const navigation = useNavigation<NavigationProp>();
-  const {getExerciseById, deleteExercise} = useExercises();
+  const {getExerciseById, deleteExercise, updateExercise} = useExercises();
   const [paused, setPaused] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
+  const {colors} = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const exercise = getExerciseById(route.params.exerciseId);
 
@@ -31,6 +38,23 @@ export default function ExerciseDetailScreen() {
       </View>
     );
   }
+
+  const handleAnalyze = async () => {
+    if (!exercise.videoUri) {
+      Alert.alert('No Video', 'Upload a video before analyzing form.');
+      return;
+    }
+
+    setAnalyzing(true);
+    try {
+      const result = await analyzeForm(exercise.videoUri, exercise.name);
+      updateExercise(exercise.id, {analysisResult: result});
+    } catch (error: any) {
+      Alert.alert('Analysis Failed', error.message || 'Something went wrong');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const handleDelete = () => {
     Alert.alert(
@@ -54,7 +78,7 @@ export default function ExerciseDetailScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentInsetAdjustmentBehavior="automatic">
       {exercise.videoUri && (
         <View style={styles.videoContainer}>
           <Video
@@ -125,14 +149,17 @@ export default function ExerciseDetailScreen() {
 
         <View style={styles.actionSection}>
           <TouchableOpacity
-            style={styles.analyzeButton}
-            onPress={() =>
-              Alert.alert(
-                'Coming Soon',
-                'AI form analysis will be available once backend is implemented',
-              )
-            }>
-            <Text style={styles.analyzeButtonText}>Analyze Form</Text>
+            style={[styles.analyzeButton, analyzing && styles.analyzeButtonDisabled]}
+            onPress={handleAnalyze}
+            disabled={analyzing}>
+            {analyzing ? (
+              <View style={styles.analyzingRow}>
+                <ActivityIndicator color={colors.background} size="small" />
+                <Text style={styles.analyzeButtonText}> Analyzing...</Text>
+              </View>
+            ) : (
+              <Text style={styles.analyzeButtonText}>Analyze Form</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -146,163 +173,170 @@ export default function ExerciseDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  videoContainer: {
-    backgroundColor: '#000',
-    aspectRatio: 16 / 9,
-  },
-  video: {
-    width: '100%',
-    height: '100%',
-  },
-  playButton: {
-    position: 'absolute',
-    bottom: 20,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(74, 144, 226, 0.9)',
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 25,
-  },
-  playButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  content: {
-    padding: 20,
-  },
-  headerSection: {
-    marginBottom: 20,
-  },
-  exerciseName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  categoryBadge: {
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  categoryText: {
-    fontSize: 14,
-    color: '#4A90E2',
-    fontWeight: '600',
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  description: {
-    fontSize: 16,
-    color: '#666',
-    lineHeight: 24,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: '#8E8E93',
-  },
-  detailValue: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '600',
-  },
-  scoreContainer: {
-    backgroundColor: '#4A90E2',
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  scoreLabel: {
-    fontSize: 14,
-    color: '#E3F2FD',
-    marginBottom: 5,
-  },
-  scoreValue: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  feedbackContainer: {
-    marginTop: 10,
-  },
-  feedbackTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 10,
-  },
-  feedbackItem: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 6,
-    lineHeight: 20,
-  },
-  actionSection: {
-    marginTop: 10,
-  },
-  analyzeButton: {
-    backgroundColor: '#4A90E2',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  analyzeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  deleteButton: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FF3B30',
-  },
-  deleteButtonText: {
-    color: '#FF3B30',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-  },
-  errorText: {
-    fontSize: 18,
-    color: '#8E8E93',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    videoContainer: {
+      backgroundColor: '#000',
+      aspectRatio: 16 / 9,
+    },
+    video: {
+      width: '100%',
+      height: '100%',
+    },
+    playButton: {
+      position: 'absolute',
+      bottom: 20,
+      alignSelf: 'center',
+      backgroundColor: colors.accent,
+      paddingHorizontal: 30,
+      paddingVertical: 12,
+      borderRadius: 25,
+    },
+    playButtonText: {
+      color: colors.background,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    content: {
+      padding: 20,
+    },
+    headerSection: {
+      marginBottom: 20,
+    },
+    exerciseName: {
+      fontSize: 28,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      marginBottom: 10,
+    },
+    categoryBadge: {
+      backgroundColor: colors.highlight,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 12,
+      alignSelf: 'flex-start',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    categoryText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: '700',
+    },
+    section: {
+      backgroundColor: colors.card,
+      padding: 15,
+      borderRadius: 14,
+      marginBottom: 15,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginBottom: 10,
+    },
+    description: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      lineHeight: 24,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    detailLabel: {
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+    detailValue: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontWeight: '700',
+    },
+    scoreContainer: {
+      backgroundColor: colors.accent,
+      padding: 20,
+      borderRadius: 12,
+      alignItems: 'center',
+      marginBottom: 15,
+    },
+    scoreLabel: {
+      fontSize: 14,
+      color: colors.background,
+      marginBottom: 5,
+    },
+    scoreValue: {
+      fontSize: 36,
+      fontWeight: '800',
+      color: colors.background,
+    },
+    feedbackContainer: {
+      marginTop: 10,
+    },
+    feedbackTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginBottom: 10,
+    },
+    feedbackItem: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 6,
+      lineHeight: 20,
+    },
+    actionSection: {
+      marginTop: 10,
+    },
+    analyzeButton: {
+      backgroundColor: colors.accent,
+      padding: 16,
+      borderRadius: 14,
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    analyzeButtonDisabled: {
+      backgroundColor: colors.highlight,
+    },
+    analyzingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    analyzeButtonText: {
+      color: colors.background,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    deleteButton: {
+      backgroundColor: colors.surface,
+      padding: 16,
+      borderRadius: 14,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.danger,
+    },
+    deleteButtonText: {
+      color: colors.danger,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+    errorText: {
+      fontSize: 18,
+      color: colors.textSecondary,
+    },
+  });

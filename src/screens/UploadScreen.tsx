@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useMemo, useState} from 'react';
 import {
   View,
   Text,
@@ -15,10 +15,15 @@ import {useExercises} from '../context/ExerciseContext';
 import {VideoUpload} from '../types';
 import {exerciseDatabase, ExerciseTemplate} from '../data/exerciseDatabase';
 import {uploadVideoToS3} from '../utils/s3Uploads';
-
+import {useAuth} from '../context/AuthContext';
+import {useTheme} from '../context/ThemeContext';
+import {ThemeColors} from '../styles/colors';
 
 export default function UploadScreen() {
   const {addExercise} = useExercises();
+  const {user} = useAuth();
+  const {colors} = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [selectedVideo, setSelectedVideo] = useState<VideoUpload | null>(null);
   const [selectedExercise, setSelectedExercise] =
     useState<ExerciseTemplate | null>(null);
@@ -66,7 +71,7 @@ export default function UploadScreen() {
     try {
       const videoUrl = await uploadVideoToS3(
         selectedVideo.uri,
-        'user-1',
+        user?.userId || 'unknown',
         selectedExercise.name,
       );
 
@@ -88,7 +93,7 @@ export default function UploadScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentInsetAdjustmentBehavior="automatic">
       <View style={styles.header}>
         <Text style={styles.title}>Upload Exercise</Text>
         <Text style={styles.subtitle}>
@@ -207,185 +212,190 @@ export default function UploadScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  header: {
-    backgroundColor: '#4A90E2',
-    padding: 20,
-    paddingTop: 60,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#E3F2FD',
-  },
-  formContainer: {
-    padding: 20,
-  },
-  inputGroup: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  selectExerciseButton: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#4A90E2',
-    borderStyle: 'dashed',
-  },
-  selectExerciseText: {
-    color: '#4A90E2',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  exerciseSelected: {
-    backgroundColor: '#FFFFFF',
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  exerciseInfo: {
-    flex: 1,
-  },
-  exerciseName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  exerciseCategory: {
-    fontSize: 12,
-    color: '#8E8E93',
-  },
-  selectVideoButton: {
-    backgroundColor: '#FFFFFF',
-    padding: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#4A90E2',
-    borderStyle: 'dashed',
-  },
-  selectVideoText: {
-    color: '#4A90E2',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  videoSelected: {
-    backgroundColor: '#FFFFFF',
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  videoInfo: {
-    flex: 1,
-  },
-  videoFileName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  videoFileSize: {
-    fontSize: 12,
-    color: '#8E8E93',
-  },
-  changeButton: {
-    backgroundColor: '#4A90E2',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  changeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  uploadButton: {
-    backgroundColor: '#4CAF50',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  uploadButtonDisabled: {
-    backgroundColor: '#BDBDBD',
-  },
-  uploadButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  modalHeader: {
-    backgroundColor: '#4A90E2',
-    padding: 20,
-    paddingTop: 60,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  modalClose: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  exerciseItem: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-  },
-  exerciseItemContent: {
-    flex: 1,
-  },
-  exerciseItemName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  exerciseItemDetails: {
-    fontSize: 14,
-    color: '#4A90E2',
-    marginBottom: 6,
-  },
-  exerciseItemDescription: {
-    fontSize: 13,
-    color: '#8E8E93',
-    lineHeight: 18,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#E0E0E0',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      backgroundColor: colors.background,
+      padding: 20,
+      paddingTop: 60,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
+    },
+    formContainer: {
+      padding: 20,
+    },
+    inputGroup: {
+      marginBottom: 24,
+    },
+    label: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    selectExerciseButton: {
+      backgroundColor: colors.surface,
+      padding: 20,
+      borderRadius: 14,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderStyle: 'dashed',
+    },
+    selectExerciseText: {
+      color: colors.accent,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    exerciseSelected: {
+      backgroundColor: colors.card,
+      padding: 15,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    exerciseInfo: {
+      flex: 1,
+    },
+    exerciseName: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    exerciseCategory: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    selectVideoButton: {
+      backgroundColor: colors.surface,
+      padding: 40,
+      borderRadius: 14,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderStyle: 'dashed',
+    },
+    selectVideoText: {
+      color: colors.accent,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    videoSelected: {
+      backgroundColor: colors.card,
+      padding: 15,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    videoInfo: {
+      flex: 1,
+    },
+    videoFileName: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    videoFileSize: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    changeButton: {
+      backgroundColor: colors.accentMuted,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.accent,
+    },
+    changeButtonText: {
+      color: colors.accent,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    uploadButton: {
+      backgroundColor: colors.accent,
+      padding: 16,
+      borderRadius: 14,
+      alignItems: 'center',
+      marginTop: 10,
+    },
+    uploadButtonDisabled: {
+      backgroundColor: colors.highlight,
+    },
+    uploadButtonText: {
+      color: colors.background,
+      fontSize: 17,
+      fontWeight: '800',
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    modalHeader: {
+      backgroundColor: colors.background,
+      padding: 20,
+      paddingTop: 60,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    modalTitle: {
+      fontSize: 24,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    modalClose: {
+      fontSize: 16,
+      color: colors.accent,
+      fontWeight: '700',
+    },
+    exerciseItem: {
+      backgroundColor: colors.card,
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    exerciseItemContent: {
+      flex: 1,
+    },
+    exerciseItemName: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    exerciseItemDetails: {
+      fontSize: 14,
+      color: colors.accent,
+      marginBottom: 6,
+    },
+    exerciseItemDescription: {
+      fontSize: 13,
+      color: colors.textMuted,
+      lineHeight: 18,
+    },
+    separator: {
+      height: 1,
+      backgroundColor: colors.border,
+    },
+  });
